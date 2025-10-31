@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-t">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DEV - Agenda de Laboratórios (Google Sheets API)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YKKZ00S2RL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  
+    gtag('config', 'G-YKKZ00S2RL');
+  </script>
+  <script>
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.opacity = "0";
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', 
+      theme: {
+        extend: {
+          fontFamily: { inter: ['Inter', 'system-ui', 'ui-sans-serif']},
+          colors: {
+            brand: {
+              DEFAULT: 'var(--dev-brand, #2563eb)',
+              dark: 'var(--dev-brand-dark, #1d4ed8)'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 25px -10px rgba(0,0,0,.25)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root{
+      --border:rgba(148,163,184,.35);
+      --dev-bg: #0f172a; 
+      --dev-card: #0b1220;
+      --dev-input: #0b1220;
+      --dev-text: #f8fafc;
+      --dev-brand: #2563eb;
+      --dev-brand-dark: #1d4ed8;
+    }
+    *{outline:0}
+    
+    body {
+      background-color: var(--dev-bg);
+      color: var(--dev-text);
+    }
+    .dark .card {
+      background-color: var(--dev-card);
+      border-color: var(--border);
+    }
+    .dark .input {
+      background-color: var(--dev-input);
+      color: var(--dev-text);
+      border-color: rgba(148,163,184,.25);
+    }
+    .dark .btn-secondary {
+      background-color: var(--dev-input);
+    }
+     .dark .spreadsheet-table th {
+      background-color: #1e293b;
+    }
+    .dark .stats-table th {
+      background-color: #1e293b;
+    }
+    .dark .mgmt-list-item {
+      background-color: #1e293b; 
+    }
+    .dark .mgmt-list-item:nth-child(even) { 
+      background-color: #1e293b; 
+    }
+    
+    .input{border:1px solid var(--border);border-radius:12px;padding:.65rem .8rem;background:#fff;color:#0f17a2;transition:all .2s}
+    .input:focus{box-shadow:0 0 0 3px rgba(37,99,235,.2);border-color:var(--dev-brand)}
+    .btn-primary{background:var(--dev-brand);color:#fff;border-radius:12px;padding:.65rem .95rem;font-weight:800;transition:transform .05s ease, background-color .2s;box-shadow:0 10px 25px -10px rgba(37,99,235,.6)}
+    .btn-primary:hover{background:var(--dev-brand-dark)}
+    .btn-primary:active{transform:translateY(1px)}
+    .btn-secondary{background:#e2e8f0;border:1px solid var(--border);border-radius:12px;padding:.6rem .9rem;font-weight:700}
+    .btn-danger{background:#ef4444;color:#fff;border-radius:12px;padding:.6rem .9rem;font-weight:800}
+    .btn-danger:hover{background:#dc2626}
+    .btn-ghost{border:1px solid var(--border);border-radius:12px;padding:.5rem .8rem;font-weight:700;background:transparent}
+    .btn-icon{border:1px solid var(--border);border-radius:12px;padding: .5rem; font-weight:700;background:transparent;line-height:1; min-width: 38px; text-align: center;}
+    .btn-icon:hover, .btn-ghost:hover { background-color: rgba(148,163,184,.1); }
+    .dark .btn-icon:hover, .dark .btn-ghost:hover { background-color: rgba(148,163,184,.2); }
+    
+    .card{border:1px solid var(--border);background:#fff;border-radius:16px;padding:1rem 1rem 1.25rem 1rem;box-shadow:0 10px 25px -12px rgba(0,0,0,.25)}
+    .section-title{font-weight:800}
+    .badge{background:#fde68a;color:#78350f;border-radius:9999px;padding:.1rem .55rem;font-size:.75rem;font-weight:800}
+    .field>label{display:block;font-size:.85rem;opacity:.8;margin-bottom:.25rem}
+    #toast{background:#111827;color:#fff;border-radius:9999px;padding:.6rem 1rem;font-weight:800;box-shadow:0 10px 25px -12px rgba(0,0,0,.35); z-index: 60;}
+    .hidden{display:none}
+
+    /* Estilos do Calendário */
+    .calendar-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .calendar-day-head { font-size: 0.75rem; font-weight: 800; text-align: center; opacity: 0.6; }
+    .calendar-day { 
+      font-size: 0.8rem; 
+      font-weight: 700; 
+      text-align: center; 
+      border-radius: 8px; 
+      height: 36px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      border: 1px solid transparent; 
+      cursor: default; 
+      position: relative;
+      transition: background-color 0.2s;
+    }
+    .calendar-day.other-month { opacity: 0.3; } 
+    .calendar-day.today { border-color: var(--dev-brand); color: var(--dev-brand); }
+    
+    .calendar-day.selected {
+      background-color: #bfdbfe; 
+      color: #1e3a8a; 
+      border-color: #3b82f6; 
+    }
+    .dark .calendar-day.selected {
+      background-color: #1e3a8a;
+      color: #bfdbfe;
+      border-color: #60a5fa;
+    }
+    .calendar-day.scheduled { 
+      background-color: #fef9c3; 
+      color: #713f12; 
+      border-color: #fde047; 
+    }
+    .dark .calendar-day.scheduled { 
+      background-color: #422006; 
+      color: #fef08a; 
+      border-color: #78350f; 
+    }
+    .calendar-day.completed { 
+      background-color: #dcfce7; 
+      color: #14532d; 
+      border-color: #4ade80; 
+    }
+    .dark .calendar-day.completed { 
+      background-color: #052e1a; 
+      color: #bbf7d0; 
+      border-color: #166534; 
+    }
+    .calendar-day.day-ok {
+      background-color: #dcfce7; 
+      color: #14532d; 
+      border-color: #86efac; 
+      font-weight: 900;
+      z-index: 9;
+    }
+    .dark .calendar-day.day-ok {
+      background-color: #064e3b; 
+      color: #a7f3d0; 
+      border-color: #10b981;
+      font-weight: 900;
+      z-index: 9;
+    }
+    .calendar-day.day-pending {
+      background-color: #fee2e2; 
+      color: #991b1b; 
+      border-color: #f87171; 
+      font-weight: 900;
+      z-index: 10;
+    }
+    .dark .calendar-day.day-pending {
+      background-color: #450a0a; 
+      color: #fca5a5; 
+      border-color: #b91c1c;
+    }
+
+    .calendar-day {
+      cursor: pointer;
+    }
+    .calendar-day:hover {
+      background-color: rgba(148,163,184,.1);
+    }
+    .dark .calendar-day:hover {
+      background-color: rgba(148,163,184,.2);
+    }
+    .calendar-day.scheduled:hover { background-color: #fef08a; }
+    .calendar-day.completed:hover { background-color: #166534; } 
+    .dark .calendar-day.scheduled:hover { background-color: #78350f; }
+    .dark .calendar-day.completed:hover { background-color: #047857; } 
+    .calendar-day.day-ok:hover { background-color: #bbf7d0; } 
+    .dark .calendar-day.day-ok:hover { background-color: #065f46; } 
+    .calendar-day.selected:hover { background-color: #93c5fd; }
+    .dark .calendar-day.selected:hover { background-color: #2563eb; }
+    .calendar-day.day-pending:hover { background-color: #fca5a5; }
+    .dark .calendar-day.day-pending:hover { background-color: #b91c1c; }
+    .calendar-day.other-month:hover {
+       background-color: rgba(148,163,184,.05);
+    }
+    .dark .calendar-day.other-month:hover {
+       background-color: rgba(148,163,184,.1);
+    }
+    .calendar-day .week-number {
+      position: absolute;
+      top: 1px;
+      left: 2px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      color: #64748b;
+    }
+    .dark .calendar-day .week-number { color: #475569; }
+    
+    .spreadsheet-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .spreadsheet-table th, .spreadsheet-table td {
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.8rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .stats-table th, .stats-table td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    .stats-table th {
+      font-weight: 700;
+      text-align: left;
+    }
+    .stats-table td:nth-child(2), .stats-table td:nth-child(3) {
+      text-align: center;
+    }
+    .stats-table td:last-child:not(:nth-child(2)):not(:nth-child(3)) {
+      font-weight: 700;
+      text-align: center;
+      min-width: 50px;
+    }
+
+    .status-ok {
+      background-color: #dcfce7;
+    }
+    .dark .status-ok {
+      background-color: #052e1a; 
+      color: #bbf7d0; 
+    }
+    .status-pendente {
+      background-color: #fef9c3;
+    }
+    .dark .status-pendente {
+      background-color: #422006; 
+      color: #fef08a; 
+    }
+    .status-vermelho {
+      background-color: #fee2e2;
+    }
+    .dark .status-vermelho {
+      background-color: #450a0a; 
+      color: #fca5a5; 
+    }
+    
+    .table-select {
+      background-color: transparent;
+      border: none;
+      padding: 0.25rem;
+      border-radius: 6px;
+      font-weight: 700;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    .status-ok .table-select { color: #14532d; }
+    .status-pendente .table-select { color: #713f12; }
+    .dark .status-ok .table-select { color: #bbf7d0; }
+    .dark .status-pendente .table-select { color: #fef08a; }
+
+    .mgmt-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.5rem;
+    }
+    .mgmt-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+    }
+    .mgmt-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.65rem 0.8rem; 
+      border-radius: 12px; 
+      background-color: #1e293b;
+    }
+    .mgmt-list-item .btn-icon {
+        background-color: #3f1212; 
+        color: #f87171; 
+        border-color: #450a0a; 
+    }
+    .mgmt-list-item .btn-icon[data-action="show-qr"] {
+        background-color: #0c2a4d;
+        color: #60a5fa;
+        border-color: #1e3a8a;
+    }
+    
+    .mgmt-form {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .mgmt-form .input {
+      flex: 1 1 auto; 
+      min-width: 0; 
+    }
+    .mgmt-form .btn-primary {
+      flex-shrink: 0; 
+    }
+    
+    #modal-overlay.flex {
+      display: flex;
+    }
+    #modal-overlay {
+      background-color: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+    }
+    
+    #qr-code-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      width: fit-content;
+      height: fit-content;
+    }
+    #qr-code-container img {
+      display: block;
+      margin: 0 auto;
+    }
+    
+    /* Estilos Painel DEV */
+    #dev-panel {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      z-index: 1000;
+      width: 380px;
+      max-width: calc(100vw - 2rem);
+      background-color: #0b1220; 
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: #f8fafc;
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,.35);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    #dev-panel.collapsed {
+      width: 50px;
+      height: 50px;
+      overflow: hidden;
+    }
+    #dev-panel-toggle {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    #dev-panel.collapsed #dev-panel-content {
+      display: none;
+    }
+    #dev-panel:not(.collapsed) #dev-panel-toggle {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 38px;
+      height: 38px;
+      font-size: 1.25rem;
+    }
+    #dev-panel-content {
+      padding: 1rem 1.25rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    #dev-log {
+      font-family: monospace;
+      font-size: 0.75rem;
+      height: 100px;
+      overflow-y: scroll;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-top: 0.75rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #dev-state-viewer, #dev-db-viewer {
+      font-family: monospace;
+      font-size: 0.7rem;
+      height: 100px;
+      overflow-y: scroll;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-top: 0.75rem;
+      white-space: pre;
+    }
+    .dev-title {
+      font-weight: 800;
+      color: #93c5fd; 
+      margin-top: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .dev-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .dev-grid .btn-secondary, .dev-grid .btn-danger {
+      width: 100%;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+    }
+    
+    .draggable-card {
+      cursor: grab;
+      user-select: none;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+    .draggable-card.is-dragging {
+      opacity: 0.5;
+      box-shadow: 0 0 30px 10px rgba(96, 165, 250, 0.4); 
+    }
+    .drop-zone.drag-over {
+      outline: 2px dashed #60a5fa; 
+      outline-offset: -4px;
+    }
+    
+    .dev-color-swatch {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+    .dev-color-swatch input[type="color"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      padding: 0;
+      overflow: hidden;
+    }
+    .dev-color-swatch input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+      border-radius: 8px;
+    }
+    .dev-color-swatch input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 8px;
+    }
+    .dev-color-swatch input[type="color"]::-moz-color-swatch {
+      border: none;
+      border-radius: 8px;
+    }
+
+    .matrix-mode {
+      background: #000 !important;
+      color: #00FF41 !important;
+      font-family: 'Courier New', Courier, monospace !important;
+    }
+    .matrix-mode .card, 
+    .matrix-mode .input, 
+    .matrix-mode .btn-secondary, 
+    .matrix-mode .dark .spreadsheet-table th, 
+    .matrix-mode .dark .stats-table th, 
+    .matrix-mode .dark .mgmt-list-item, 
+    .matrix-mode #dev-panel,
+    .matrix-mode .dark .btn-icon:hover, 
+    .matrix-mode .dark .btn-ghost:hover {
+      background-color: #020 !important;
+      border-color: #008F11 !important;
+      color: #00FF41 !important;
+    }
+    .matrix-mode .btn-primary { 
+      background: #00FF41 !important; 
+      color: #000 !important; 
+      box-shadow: 0 10px 25px -10px rgba(0, 255, 65, .6) !important;
+    }
+    .matrix-mode .btn-danger {
+      background: #c10202 !important;
+      color: #fff !important;
+    }
+    .matrix-mode ::placeholder { color: #00FF41 !important; opacity: 0.5; }
+    .matrix-mode #toast { background: #00FF41 !important; color: #000 !important; }
+    .matrix-mode .text-blue-400, .matrix-mode .text-blue-300, .matrix-mode .dev-title {
+      color: #33FF57 !important;
+    }
+    
+    [data-debug-visual="true"] * {
+      outline: 1px solid rgba(255, 0, 0, 0.5) !important;
+    }
+    
+    /* MODIFICAÇÃO: Botões desativados */
+    .btn-primary:disabled, .btn-secondary:disabled, .btn-danger:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    
+  </style>
+</head>
+<body class="font-inter bg-slate-900 text-slate-100 transition-colors duration-300 dark">
+
+  <div id="selection-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900 p-4">
+    <div class="card w-full max-w-md">
+      <h2 class="text-xl font-extrabold text-center mb-6">Selecione a Visualização</h2>
+      
+      <div class="space-y-4">
+        <div class="field">
+          <label for="select-sala" class="font-bold">Sala</label>
+          <select id="select-sala" class="input w-full">
+            <option value="">Carregando salas...</option>
+          </select>
+        </div>
+      </div>
+      
+      <button id="btn-selecionar" class="btn-primary w-full mt-6 text-lg p-3" disabled>Carregando Dados...</button>
+      
+      <button id="btn-open-management" class="btn-secondary w-full mt-3">Gerenciar Opções</button>
+    </div>
+  </div>
+
+  <div id="management-view" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-slate-900 p-4">
+    <div class="card w-full max-w-4xl">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-extrabold text-center">Gerenciar Opções</h2>
+        <button id="btn-mgmt-voltar" class="btn-ghost">Voltar</button>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        
+        <div class="space-y-3">
+          <h3 class="text-lg font-bold">Salas</h3>
+          <div class="mgmt-form">
+            <input id="input-salas" class="input" placeholder="Ex: Lab_101">
+            <button id="btn-add-sala" class="btn-primary">Add</button>
+          </div>
+          <ul id="list-salas" class="mgmt-list space-y-1">
+            <li class="mgmt-list-item opacity-50">Carregando...</li>
+          </ul>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-lg font-bold">Turmas</h3>
+          <div class="mgmt-form">
+            <input id="input-turmas" class="input" placeholder="Ex: Me-76">
+            <button id="btn-add-turma" class="btn-primary">Add</button>
+          </div>
+          <ul id="list-turmas" class="mgmt-list space-y-1">
+            </ul>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-lg font-bold">Professores</h3>
+          <div class="mgmt-form">
+            <input id="input-professores" class="input" placeholder="Ex: Vitor">
+            <button id="btn-add-prof" class="btn-primary">Add</button>
+          </div>
+          <ul id="list-professores" class="mgmt-list space-y-1">
+            </ul>
+        </div>
+
+      </div>
+      
+      <div class="border-t border-slate-700 mt-6 pt-6 text-center">
+        <button id="btn-reset-all" class="btn-danger w-full max-w-xs mx-auto">Resetar TUDO (Listas e Agendamentos)</button>
+        <p class="text-xs opacity-50 mt-2">Esta ação é irreversível.</p>
+      </div>
+      
+    </div>
+  </div>
+
+
+  <div id="app" class="opacity-0 hidden">
+    <header class="sticky top-0 z-40 backdrop-blur bg-slate-900/70 border-b border-slate-700/60">
+      <div class="max-w-full mx-auto px-4 lg:px-8 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg sm:text-2xl font-black">DEV - Agenda de Laboratórios</h1>
+          <span id="header-selection" class="hidden sm:inline text-lg sm:text-2xl font-black text-blue-400"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="clock" class="hidden sm:inline font-mono text-sm opacity-80"></span>
+          <button id="btn-change-filter" class="btn-ghost">Trocar Filtro</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-layout" class="max-w-full mx-auto px-4 lg:px-8 py-6 grid lg:grid-cols-2 gap-6">
+      
+      <section id="layout-col-1" class="space-y-6 lg:sticky lg:top-20 h-fit drop-zone">
+        
+        <aside id="calendar-wrapper" class="card">
+          <div class="calendar-header">
+            <button id="cal-prev" class="btn-icon">◄</button>
+            <h3 id="cal-month-year" class="text-base font-extrabold text-center"></h3>
+            <button id="cal-next" class="btn-icon">►</button>
+          </div>
+          <div class="calendar-grid mt-2">
+            <div class="calendar-day-head">Dom</div>
+            <div class="calendar-day-head">Seg</div>
+            <div class="calendar-day-head">Ter</div>
+            <div class="calendar-day-head">Qua</div>
+            <div class="calendar-day-head">Qui</div>
+            <div class="calendar-day-head">Sex</div>
+            <div class="calendar-day-head">Sáb</div>
+          </div>
+          <div id="cal-body" class="calendar-grid mt-1">
+            </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/40 border border-red-400"></div>
+              <span class="text-xs font-medium">Dia Pendente</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-400"></div>
+              <span class="text-xs font-medium">Semana Pendente</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-green-200 dark:bg-green-700 border border-green-400"></div>
+              <span class="text-xs font-medium">Dia (Ok)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/40 border border-green-400"></div>
+              <span class="text-xs font-medium">Semana (Ok)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full border-2 border-brand-dark dark:border-blue-400"></div>
+              <span class="text-xs font-medium">Hoje</span>
+            </div>
+          </div>
+        </aside>
+
+        <div id="form-wrapper" class="card">
+          <h2 class="text-xl font-bold mb-4">Adicionar Agendamento</h2>
+          <div class="grid grid-cols-1 gap-4">
+            <div class="field">
+              <label for="form-dia">Dia</label>
+              <input id="form-dia" type="date" class="input">
+            </div>
+            <div class="field">
+              <label for="form-sala">Sala</label>
+              <select id="form-sala" class="input">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+             <div class="field">
+              <label for="form-turma">Turma</label>
+              <select id="form-turma" class="input">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="form-prof">Professor</label>
+              <select id="form-prof" class="input">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            
+            <div class="flex justify-end">
+              <button id="btn-add-agenda" class="btn-primary w-full">Salvar Agendamento</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside id="layout-col-2" class="space-y-6 drop-zone">
+        
+        <div id="details-wrapper" class="card">
+          <h3 class="text-lg font-bold mb-2">Detalhes da Semana</h3>
+          <h4 id="day-details-date" class="font-bold text-brand-dark dark:text-blue-400 mb-3 text-sm">Nenhuma semana selecionada</h4>
+          <div class="overflow-y-auto max-h-48"> 
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Dia</th>
+                  <th>Turma</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="day-details-body">
+                <tr><td colspan="3" class="text-center p-4 opacity-50 text-sm">Clique em um dia no calendário...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="agenda-wrapper" class="card">
+          <h2 class="text-xl font-bold mb-4">Agendamentos do Mês</h2>
+          <div class="overflow-x-auto">
+            <table class="spreadsheet-table">
+              <thead>
+                <tr>
+                  <th>Semana</th>
+                  <th>Dia</th> 
+                  <th id="dynamic-col-header">Turma</th>
+                  <th id="dynamic-col-header-2">Professor</th>
+                  <th>5S Ok?</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="agenda-table-body">
+                <tr><td colspan="6" class="text-center p-6 opacity-60">Nenhum agendamento encontrado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="stats-wrapper" class="card">
+          <h2 class="text-xl font-bold mb-4">Estatísticas do Mês (5S Ok)</h2>
+          <p class="text-sm opacity-70 mb-4">Contagem de status "Ok" para o mês e sala selecionados.</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            
+            <div>
+              <h3 class="text-lg font-bold mb-2">Contagem por Turma</h3>
+              <div class="overflow-x-auto">
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th>Turma</th>
+                      <th>Qtd. "Ok"</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stats-turmas-body">
+                    <tr><td colspan="2" class="text-center p-4 opacity-60">Nenhum dado "Ok".</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-lg font-bold mb-2">Contagem por Professor</h3>
+              <div class="overflow-x-auto">
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th>Professor</th>
+                      <th>Qtd. "Ok"</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stats-prof-body">
+                     <tr><td colspan="2" class="text-center p-4 opacity-60">Nenhum dado "Ok".</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+      </aside>
+
+    </main>
+
+    <div id="toast" class="fixed bottom-4 right-4 hidden"></div>
+
+    <div id="modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+      <div class="card w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="modal-title" class="text-xl font-extrabold">Confirmar</h2>
+          <button id="modal-close" class="btn-icon">✖</button>
+        </div>
+        <div id="modal-content" class="text-sm opacity-90">
+          <p id="modal-text-content"></p>
+          <div id="qr-code-container" class="flex justify-center my-4"></div>
+        </div>
+        <div class="mt-6 flex gap-3">
+          <button id="modal-cancel" class="btn-secondary w-full">Cancelar</button>
+          <button id="modal-confirm" class="btn-primary w-full">Confirmar</button>
+        </div>
+      </div>
+    </div>
+    
+    <aside id="dev-panel" class="collapsed">
+      <button id="dev-panel-toggle" class="btn-icon">⚙️</button>
+      
+      <div id="dev-panel-content">
+        <h2 class="text-xl font-extrabold text-blue-300 mb-4">Painel DEV (API)</h2>
+        
+        <h3 class="dev-title">Testes de Layout</h3>
+        <button id="dev-drag-toggle" class="btn-secondary w-full text-sm py-2">Arrastar Layout (Off)</button>
+        
+        <div class="dev-grid mt-2">
+          <button id="dev-layout-50-50" class="btn-secondary">Layout 50/50</button>
+          <button id="dev-layout-30-70" class="btn-secondary">Layout 30/70</button>
+          <button id="dev-layout-col1" class="btn-secondary">Mover Form p/ Col 1</button>
+          <button id="dev-layout-col2" class="btn-secondary">Mover Form p/ Col 2</button>
+        </div>
+        <div class="dev-grid mt-2">
+          <button id="dev-toggle-calendar" class="btn-secondary">Toggle Calendário</button>
+          <button id="dev-toggle-form" class="btn-secondary">Toggle Formulário</button>
+          <button id="dev-toggle-details" class="btn-secondary">Toggle Detalhes</button>
+          <button id="dev-toggle-stats" class="btn-secondary">Toggle Stats</button>
+        </div>
+        
+        <h3 class="dev-title">Editor de Tema</h3>
+        <div class="space-y-2">
+          <div class="dev-color-swatch">
+            <label for="color-bg">Fundo (Body)</label>
+            <input type="color" id="color-bg" value="#0f172a">
+          </div>
+          <div class="dev-color-swatch">
+            <label for="color-card">Fundo (Card)</label>
+            <input type="color" id="color-card" value="#0b1220">
+          </div>
+          <div class="dev-color-swatch">
+            <label for="color-input">Fundo (Input)</label>
+            <input type="color" id="color-input" value="#0b1220">
+          </div>
+          <div class="dev-color-swatch">
+            <label for="color-text">Texto (Body)</label>
+            <input type="color" id="color-text" value="#f8fafc">
+          </div>
+          <div class="dev-color-swatch">
+            <label for="color-brand">Destaque (Brand)</label>
+            <input type="color" id="color-brand" value="#2563eb">
+          </div>
+        </div>
+
+        <h3 class="dev-title">Testes de Dados (Desativados)</h3>
+        <p class="text-xs opacity-50 mb-2">Estes botões manipulavam o LocalStorage e estão desativados.</p>
+        <div class="dev-grid">
+          <button id="dev-add-pending" class="btn-secondary" disabled>Add 5 Pendentes (Mês)</button>
+          <button id="dev-add-ok" class="btn-secondary" disabled>Add 5 OK (Mês)</button>
+          <button id="dev-fill-week-pending" class="btn-secondary" disabled>Preencher Semana (Pend)</button>
+          <button id="dev-fill-week-ok" class="btn-secondary" disabled>Preencher Semana (OK)</button>
+          <button id="dev-fill-lists" class="btn-secondary" disabled>Popular Listas</button>
+          <button id="dev-clear-agendamentos" class="btn-danger" disabled>Limpar Agendamentos</button>
+        </div>
+        
+        <h3 class="dev-title">Funções Adicionadas (Exemplos)</h3>
+        <div class="dev-grid">
+          <button id="dev-test-toast" class="btn-secondary">Testar Toast (Cat 9)</button>
+          <button id="dev-export-json" class="btn-secondary">Exportar Cache (Cat 1)</button>
+          <button id="dev-matrix-mode" class="btn-secondary">Matrix Mode (Cat 16)</button>
+          <button id="dev-import-json" class="btn-secondary" disabled>Importar DB (Desativado)</button>
+          <button id="dev-toggle-debug" class="btn-secondary">Debug Visual (Off) (Cat 4)</button>
+          <button id="dev-toggle-sounds" class="btn-secondary">Sons (Off) (Cat 3)</button>
+        </div>
+        
+        <h3 class="dev-title">Log de Eventos</h3>
+        <div id="dev-log">...</div>
+        
+        <h3 class="dev-title">State Viewer (state)</h3>
+        <pre id="dev-state-viewer">{...}</pre>
+
+        <h3 class="dev-title">DB Viewer (API Cache)</h3>
+        <pre id="dev-db-viewer">{...}</pre>
+
+      </div>
+    </aside>
+    
+    <input type="file" id="dev-file-importer" class="hidden" accept="application/json">
+
+  </div>
+
+  <script>
+    // Reveal after JS initialization starts
+    window.addEventListener('load', () => {
+      document.documentElement.style.opacity = "1";
+    });
+  </script>
+
+  <script type="module">
+    /* ========================== Configuração da API ========================== */
+    // NOVO: URL da sua API do Google Apps Script
+    const API_URL = "https://script.google.com/macros/s/AKfycbySWyZKF_5I1-QaIYmHZfc4I31E4sHyeWAOf4qcaTGY1j8lAmSD-o1TezT4r5XGSzIgXQ/exec";
+    
+    /* ========================== State ========================== */
+    const state = {
+      currentView: "selection", 
+      selectionSala: null, 
+      agendamentos: [],
+      timers: { clock: null },
+      calendar: {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth(), 
+        selectedWeek: null, 
+        clickedDayISO: null, 
+      },
+      sonsAtivados: false, 
+      debugVisual: false,
+      isLoading: true, // NOVO: Estado de carregamento
+    };
+    
+    // Objeto principal do "banco de dados" em CACHE
+    // Ele será preenchido pela API
+    let DB = {};
+
+    /* ========================== Utils (do layout original) ========================== */
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => [...document.querySelectorAll(sel)];
+    
+    function toast(msg, kind="info"){
+      if (kind === "ok") playSound("success");
+      if (kind === "error") playSound("error");
+      
+      const box = $("#toast");
+      box.textContent = msg;
+      box.classList.remove("hidden");
+      box.style.background = kind==="error" ? "#ef4444" : (kind==="ok" ? "#065f46" : "#111827");
+      setTimeout(()=>box.classList.add("hidden"), 3000);
+    }
+    
+    function getWeekNumber(d) {
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        const diff = date - yearStart;
+        const dayOfYear = (diff / 86400000) + 1;
+        const startDay = yearStart.getUTCDay(); 
+        const weekNo = Math.ceil((dayOfYear + startDay) / 7);
+        return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+    
+    const isoDate = (d) => d.toISOString().split('T')[0];
+    const today = new Date();
+    const todayISO = isoDate(today);
+
+    const formatKey = (str) => (str || "").trim().replace(/ /g, "_");
+    const formatDisplay = (str) => (str || "").trim().replace(/_/g, " ");
+    
+    // NOTA: O generateId() do LocalStorage não é mais usado para salvar.
+    // A API (Apps Script) agora gera o UUID.
+    
+    /* ========================== Funções de Som (Categoria 3) ========================== */
+    let audioCtx; 
+    function initAudio() {
+      if (!audioCtx) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+          console.error("Web Audio API is not supported in this browser");
+          state.sonsAtivados = false;
+        }
+      }
+    }
+    function playSound(type) {
+      if (!state.sonsAtivados || !audioCtx) return;
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+      if (type === 'click') {
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.1);
+      } else if (type === 'success') {
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.2);
+      } else if (type === 'error') {
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.15);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.2);
+      }
+    }
+
+    /* ========================== Clock ========================== */
+    function startClock(){
+      if (state.timers.clock) clearInterval(state.timers.clock);
+      state.timers.clock = setInterval(()=>{
+        $("#clock").textContent = new Date().toLocaleTimeString("pt-BR", {hour12:false});
+      }, 1000);
+    }
+    
+    /* ========================== Modal Genérico ========================== */
+    const $modal = {
+      overlay: $("#modal-overlay"),
+      title: $("#modal-title"),
+      content: $("#modal-content"),
+      textContent: $("#modal-text-content"),
+      qrContainer: $("#qr-code-container"),
+      confirmBtn: $("#modal-confirm"),
+      cancelBtn: $("#modal-cancel"),
+      closeBtn: $("#modal-close"),
+    };
+
+    let modalConfirmCallback = () => {};
+    let modalCancelCallback = () => {};
+
+    function openModal(config) {
+      playSound('click');
+      $modal.textContent.innerHTML = "";
+      $modal.qrContainer.innerHTML = "";
+      $modal.title.textContent = config.title || "Confirmar";
+      if(config.content) {
+        $modal.textContent.innerHTML = config.content;
+      }
+      $modal.confirmBtn.textContent = config.confirmText || "Confirmar";
+      $modal.cancelBtn.textContent = config.cancelText || "Cancelar";
+      $modal.confirmBtn.className = config.confirmClass || "btn-primary w-full";
+      $modal.cancelBtn.className = config.cancelClass || "btn-secondary w-full";
+      $modal.confirmBtn.classList.toggle('hidden', !!config.hideConfirm);
+      $modal.cancelBtn.classList.toggle('hidden', !!config.hideCancel);
+      modalConfirmCallback = config.onConfirm || closeModal;
+      modalCancelCallback = config.onCancel || closeModal;
+      $modal.overlay.classList.remove("hidden");
+      $modal.overlay.classList.add("flex");
+    }
+
+    function closeModal() {
+      playSound('click');
+      $modal.overlay.classList.add("hidden");
+      $modal.overlay.classList.remove("flex");
+      $modal.textContent.innerHTML = "";
+      $modal.qrContainer.innerHTML = "";
+      modalConfirmCallback = () => {};
+      modalCancelCallback = () => {};
+    }
+
+    $modal.confirmBtn.addEventListener("click", () => modalConfirmCallback());
+    $modal.cancelBtn.addEventListener("click", () => modalCancelCallback());
+    $modal.closeBtn.addEventListener("click", () => modalCancelCallback());
+
+    function confirmBox(text, title = "Confirmar Ação", confirmText = "Confirmar", confirmClass = "btn-primary w-full") {
+      return new Promise((resolve) => {
+        openModal({
+          title: title,
+          content: `<p>${text}</p>`,
+          confirmText: confirmText,
+          confirmClass: confirmClass, 
+          onConfirm: () => {
+            closeModal();
+            resolve(true);
+          },
+          onCancel: () => {
+            closeModal();
+            resolve(false);
+          }
+        });
+      });
+    }
+
+    /* ========================== Lógica DEV ========================== */
+    const $dev = {
+      log: $("#dev-log"),
+      state: $("#dev-state-viewer"),
+      db: $("#dev-db-viewer"),
+      panel: $("#dev-panel"),
+      toggleBtn: $("#dev-panel-toggle"),
+      col1: $("#layout-col-1"),
+      col2: $("#layout-col-2"),
+      main: $("#main-layout"),
+      form: $("#form-wrapper"),
+      details: $("#details-wrapper"),
+      stats: $("#stats-wrapper"),
+      calendar: $("#calendar-wrapper")
+    };
+    
+    let isDragEnabled = false;
+    let draggedItem = null;
+    
+    function devLog(msg, type = "info") {
+      const color = type === "error" ? "text-red-400" : (type === "ok" ? "text-green-400" : "text-blue-300");
+      $dev.log.innerHTML += `<div class="${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+      $dev.log.scrollTop = $dev.log.scrollHeight;
+    }
+    
+    function updateDevState() {
+      const simpleState = {
+        ...state,
+        agendamentos: `[${state.agendamentos.length} items]`,
+      };
+      $dev.state.textContent = JSON.stringify(simpleState, null, 2);
+      $dev.db.textContent = JSON.stringify(DB, null, 2);
+    }
+    
+    // Funções de dev de dados (devAddAgendamentos, devFillWeek, etc) foram desativadas
+    // pois elas só manipulavam o LocalStorage.
+    
+    function setLayout(type) {
+      if (type === '50/50') {
+        $dev.main.classList.remove('lg:grid-cols-[320px,1fr]');
+        $dev.main.classList.add('lg:grid-cols-2');
+        devLog("Layout: 50/50");
+      } else if (type === '30/70') {
+        $dev.main.classList.remove('lg:grid-cols-2');
+        $dev.main.classList.add('lg:grid-cols-[320px,1fr]');
+        devLog("Layout: 30/70 (Sticky)");
+      }
+    }
+    
+    function moveCard(card, destination) {
+       destination.appendChild(card);
+       devLog(`Card #${card.id} movido para #${destination.id}`);
+    }
+
+    function initDragAndDrop() {
+      const draggables = $$('#layout-col-1 .card, #layout-col-2 .card');
+      const dropZones = $$('.drop-zone');
+      draggables.forEach(el => {
+        el.setAttribute('draggable', 'true');
+        el.classList.add('draggable-card');
+        el.addEventListener('dragstart', (e) => {
+          draggedItem = e.target.closest('.card');
+          draggedItem.classList.add('is-dragging');
+          devLog(`Arrastando: #${draggedItem.id}`);
+        });
+        el.addEventListener('dragend', () => {
+          if (draggedItem) {
+            draggedItem.classList.remove('is-dragging');
+          }
+          draggedItem = null;
+        });
+      });
+      dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('drag-over');
+        });
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('drag-over');
+        });
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+          if (draggedItem) {
+            zone.appendChild(draggedItem);
+            devLog(`Solto em: #${zone.id}`);
+          }
+        });
+      });
+    }
+
+    function initColorPickers() {
+      const root = document.documentElement;
+      const updateColor = (variable, value) => {
+         root.style.setProperty(variable, value);
+         devLog(`Cor ${variable} alterada para ${value}`);
+      };
+      $("#color-bg").addEventListener('input', (e) => updateColor('--dev-bg', e.target.value));
+      $("#color-card").addEventListener('input', (e) => updateColor('--dev-card', e.target.value));
+      $("#color-input").addEventListener('input', (e) => updateColor('--dev-input', e.target.value));
+      $("#color-text").addEventListener('input', (e) => updateColor('--dev-text', e.target.value));
+      $("#color-brand").addEventListener('input', (e) => updateColor('--dev-brand', e.target.value));
+    }
+    
+    /* ========================== Funções de Exemplo (DEV) ========================== */
+    
+    function devTestToast() {
+      devLog("Testando toast...", "info");
+      toast("Este é um toast de teste!", "ok");
+    }
+
+    function devExportarJSON() {
+      devLog("Exportando Cache do DB para JSON...", "info");
+      try {
+        const dataStr = JSON.stringify(DB, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `agenda_backup_${todayISO}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        devLog("Backup JSON exportado com sucesso.", "ok");
+        toast("Backup JSON exportado!", "ok");
+      } catch (e) {
+        devLog(`Erro ao exportar JSON: ${e.message}`, "error");
+        toast("Erro ao exportar backup.", "error");
+      }
+    }
+    
+    function devAtivarModoMatrix() {
+      const body = document.body;
+      body.classList.toggle('matrix-mode');
+      if (body.classList.contains('matrix-mode')) {
+        devLog("Modo Matrix ATIVADO.", "ok");
+        toast("Siga o coelho branco...");
+      } else {
+        devLog("Modo Matrix desativado.", "info");
+      }
+    }
+
+    // A função devImportarJSON foi desativada (veja o botão)
+
+    function devToggleDebugVisual() {
+      playSound('click');
+      state.debugVisual = !state.debugVisual;
+      document.body.setAttribute('data-debug-visual', state.debugVisual);
+      const btn = $("#dev-toggle-debug");
+      if (state.debugVisual) {
+        btn.textContent = "Debug Visual (On)";
+        btn.classList.add("btn-danger");
+        devLog("Debug Visual ATIVADO.", "ok");
+      } else {
+        btn.textContent = "Debug Visual (Off)";
+        btn.classList.remove("btn-danger");
+        devLog("Debug Visual desativado.", "info");
+      }
+    }
+    
+    function devToggleSons() {
+      initAudio(); 
+      state.sonsAtivados = !state.sonsAtivados;
+      playSound('click');
+      const btn = $("#dev-toggle-sounds");
+      if (state.sonsAtivados) {
+        btn.textContent = "Sons (On)";
+        btn.classList.add("btn-primary");
+        devLog("Sons ATIVADOS.", "ok");
+      } else {
+        btn.textContent = "Sons (Off)";
+        btn.classList.remove("btn-primary");
+        devLog("Sons desativados.", "info");
+      }
+    }
+    
+    function gerarQRCodeSala(salaNome) {
+      const nomeFormatado = formatDisplay(salaNome);
+      devLog(`Gerando QR Code para: ${nomeFormatado}`, "info");
+      openModal({
+        title: `QR Code para ${nomeFormatado}`,
+        content: `Aponte a câmera para escanear o QR Code da sala.`,
+        hideConfirm: true,
+        cancelText: "Fechar",
+      });
+      $modal.qrContainer.innerHTML = "";
+      try {
+        new QRCode($modal.qrContainer, {
+            text: salaNome,
+            width: 256,
+            height: 256,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        devLog("QR Code gerado com sucesso.", "ok");
+      } catch(e) {
+        devLog(`Erro ao gerar QR Code: ${e.message}`, "error");
+        $modal.qrContainer.innerHTML = "Erro ao gerar QR Code.";
+      }
+    }
+
+    /* ================================================================ */
+    /* ================================================================ */
+    /* INÍCIO DAS FUNÇÕES DE DADOS (MODIFICADAS PARA API)
+    /* ================================================================ */
+    /* ================================================================ */
+
+    /**
+     * NOVO: Ponto central para fazer requisições POST para a API
+     */
+    async function postToAPI(payload) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' },
+          // O 'redirect' e 'cors' são tratados pelo Apps Script (CORS)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.success === false) {
+          throw new Error(result.error || "Erro desconhecido na API.");
+        }
+        
+        devLog(`API POST OK: ${payload.action}`, "ok");
+        return result.data; // Retorna os dados de sucesso
+
+      } catch (err) {
+        devLog(`API POST Erro: ${err.message}`, "error");
+        toast(`Erro de Rede: ${err.message}`, "error");
+        throw err; // Lança o erro para a função que chamou (para o finally)
+      }
+    }
+
+    /**
+     * MODIFICADO: Carrega todos os dados iniciais da API
+     */
+    async function loadAllData() {
+       state.isLoading = true;
+       devLog("Carregando dados da API do Google Sheets...");
+       
+       const $selectBtn = $("#btn-selecionar");
+       $selectBtn.textContent = "Carregando Dados...";
+       $selectBtn.disabled = true;
+       
+       try {
+         const response = await fetch(API_URL + '?action=getAllData');
+         if (!response.ok) {
+           throw new Error(`Erro de rede: ${response.statusText}`);
+         }
+         
+         DB = await response.json(); // Salva os dados da API no cache global 'DB'
+         
+         if (DB.error) {
+            throw new Error(`Erro na API: ${DB.error}`);
+         }
+         
+         devLog("Dados carregados e cacheados com sucesso.", "ok");
+         
+         // Popula os dropdowns e listas de gerenciamento
+         renderManagementList('salas', DB._listas.salas || {});
+         renderManagementList('turmas', DB._listas.turmas || {});
+         renderManagementList('professores', DB._listas.professores || {});
+         updateDevState();
+         
+         $selectBtn.textContent = "Selecionar";
+         $selectBtn.disabled = false;
+         
+       } catch (err) {
+          devLog(err.message, "error");
+          toast(`Falha ao carregar dados: ${err.message}`, "error");
+          $selectBtn.textContent = "Erro ao Carregar";
+          $selectBtn.classList.add("btn-danger");
+          $("#select-sala").innerHTML = `<option value="">Falha ao carregar salas</option>`;
+       } finally {
+         state.isLoading = false;
+       }
+    }
+
+
+    /* ========================== Lógica da Agenda (Principal) ========================== */
+
+    function showView(viewName) {
+      state.currentView = viewName;
+      $("#selection-view").classList.add("hidden");
+      $("#app").classList.add("hidden");
+      $("#management-view").classList.add("hidden");
+      
+      if (viewName === 'agenda') {
+        $("#app").classList.remove("hidden");
+        $("#app").classList.remove("opacity-0");
+      } else if (viewName === 'management') {
+        $("#management-view").classList.remove("hidden");
+        $("#management-view").classList.add("flex"); 
+      } else { // 'selection'
+        $("#selection-view").classList.remove("hidden");
+        $("#selection-view").classList.add("flex");
+        state.selectionSala = null; 
+        $("#form-sala").value = "";
+        $("#form-sala").disabled = false;
+        $("#form-turma").value = "";
+        $("#form-turma").disabled = false;
+        $("#form-prof").value = "";
+        $("#form-prof").disabled = false;
+      }
+      devLog(`Navegando para: ${viewName}`);
+      updateDevState();
+    }
+
+    /**
+     * MODIFICADO: Agora lê do cache global 'DB' (preenchido pela API)
+     */
+    function selectFilter(sala) {
+      if (!sala) return;
+      
+      state.selectionSala = sala;
+      devLog(`Filtrando pela sala: ${sala}`);
+      
+      $("#dynamic-col-header").textContent = "Turma";
+      $("#dynamic-col-header-2").textContent = "Professor";
+      $("#form-sala").value = sala;
+      $("#form-sala").disabled = true;
+      $("#form-turma").disabled = false;
+      $("#form-prof").disabled = false;
+      $("#header-selection").textContent = `: ${formatDisplay(sala)}`;
+
+      // Carrega os agendamentos da sala selecionada do cache 'DB'
+      if (DB.labs && DB.labs[sala] && DB.labs[sala].agendamentos) {
+         state.agendamentos = Object.entries(DB.labs[sala].agendamentos).map(([id, value]) => ({
+           id,
+           ...value
+         }));
+      } else {
+         state.agendamentos = []; 
+      }
+      
+      devLog(`Encontrados ${state.agendamentos.length} agendamentos para ${sala}.`);
+
+      renderTable(); 
+      renderCalendar();
+      renderStats(); 
+      clearDayDetails(); 
+      renderCalendar(); 
+
+      showView('agenda');
+    }
+
+    // NENHUMA MUDANÇA NECESSÁRIA EM:
+    // renderTable()
+    // renderStats()
+    // renderCalendar()
+    // clearDayDetails()
+    // updateWeekDetailsPanel()
+    // (Elas apenas leem o 'state.agendamentos', que é preenchido pelo 'selectFilter')
+
+    function renderTable() {
+      const tbody = $("#agenda-table-body");
+      const agendamentosDoMes = state.agendamentos.filter(a => {
+        const d = new Date(a.dia + 'T12:00:00Z');
+        return d.getUTCFullYear() === state.calendar.year && 
+               d.getUTCMonth() === state.calendar.month;
+      });
+      
+      if (agendamentosDoMes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 opacity-60">Nenhum agendamento para este mês.</td></tr>`;
+        return;
+      }
+      const sorted = agendamentosDoMes.sort((a, b) => new Date(a.dia) - new Date(b.dia));
+      tbody.innerHTML = "";
+      for (const item of sorted) {
+        const tr = document.createElement("tr");
+        const diaDate = new Date(`${item.dia}T12:00:00Z`);
+        const semana = getWeekNumber(diaDate).split('-W')[1]; 
+        const diaFormatado = diaDate.getUTCDate(); 
+        const col1 = formatDisplay(item.turma);
+        const col2 = formatDisplay(item.prof);
+        const statusClass = item.status === 'ok' ? 'status-ok' : 'status-pendente';
+        tr.innerHTML = `
+          <td>${semana}</td>
+          <td>${diaFormatado}</td>
+          <td>${col1 || 'N/A'}</td>
+          <td>${col2 || 'N/A'}</td>
+          <td class="${statusClass}">
+            <select class="table-select" data-action="status-change" data-id="${item.id}">
+              <option value="pendente" ${item.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+              <option value="ok" ${item.status === 'ok' ? 'selected' : ''}>Ok</option>
+            </select>
+          </td>
+          <td class="flex gap-1">
+            <button data-action="edit" data-id="${item.id}" class="btn-icon text-blue-500" title="Editar">✏️</button>
+            <button data-action="delete" data-id="${item.id}" class="btn-icon text-red-500" title="Excluir">🗑</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+    function renderStats() {
+      const statsTurmasBody = $("#stats-turmas-body");
+      const statsProfBody = $("#stats-prof-body");
+      const turmaCounts = {};
+      const profCounts = {};
+      let totalOk = 0;
+      const agendamentosDoMes = state.agendamentos.filter(a => {
+        const d = new Date(a.dia + 'T12:00:00Z');
+        return d.getUTCFullYear() === state.calendar.year && 
+               d.getUTCMonth() === state.calendar.month;
+      });
+      for (const item of agendamentosDoMes) { 
+        if (item.status === 'ok') {
+          totalOk++;
+          const turmaKey = item.turma || 'N/A';
+          const profKey = item.prof || 'N/A';
+          turmaCounts[turmaKey] = (turmaCounts[turmaKey] || 0) + 1;
+          profCounts[profKey] = (profCounts[profKey] || 0) + 1;
+        }
+      }
+      if (totalOk === 0) {
+        statsTurmasBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 opacity-60">Nenhum dado "Ok" neste mês.</td></tr>`;
+        statsProfBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 opacity-60">Nenhum dado "Ok" neste mês.</td></tr>`;
+        return;
+      }
+      statsTurmasBody.innerHTML = "";
+      Object.entries(turmaCounts).sort((a,b) => b[1] - a[1]).forEach(([turma, count]) => {
+        statsTurmasBody.innerHTML += `
+          <tr>
+            <td>${formatDisplay(turma)}</td>
+            <td>${count}</td>
+          </tr>
+        `;
+      });
+      statsProfBody.innerHTML = "";
+      Object.entries(profCounts).sort((a,b) => b[1] - a[1]).forEach(([prof, count]) => {
+        statsProfBody.innerHTML += `
+          <tr>
+            <td>${formatDisplay(prof)}</td>
+            <td>${count}</td>
+          </tr>
+        `;
+      });
+    }
+    function renderCalendar() {
+      const { year, month } = state.calendar;
+      const calBody = $("#cal-body");
+      calBody.innerHTML = "";
+      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      $("#cal-month-year").textContent = `${monthNames[month]} ${year}`;
+      const weekStatus = new Map(); 
+      const pendingDays = new Set(); 
+      const okDays = new Set(); 
+      const agendamentosByDate = {}; 
+      for (const item of state.agendamentos) {
+        const itemDate = new Date(item.dia + 'T12:00:00Z');
+        const dayOfWeek = itemDate.getUTCDay();
+        const dateISO = item.dia;
+        if (!agendamentosByDate[dateISO]) agendamentosByDate[dateISO] = [];
+        agendamentosByDate[dateISO].push(item);
+        if (dayOfWeek > 0 && dayOfWeek < 6) { 
+          const weekNo = getWeekNumber(itemDate);
+          if (item.status === 'pendente') {
+            weekStatus.set(weekNo, 'pendente'); 
+            pendingDays.add(dateISO); 
+          } else if (item.status === 'ok') {
+            okDays.add(dateISO); 
+            if (!weekStatus.has(weekNo)) { 
+              weekStatus.set(weekNo, 'ok');
+            }
+          }
+        }
+      }
+      const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+      const firstDayOfWeek = firstDayOfMonth.getUTCDay();
+      const startDate = new Date(Date.UTC(year, month, 1 - firstDayOfWeek));
+      for (let i = 0; i < 42; i++) {
+        const date = new Date(startDate);
+        date.setUTCDate(startDate.getUTCDate() + i);
+        const dateISO = isoDate(date);
+        const currentWeekNo = getWeekNumber(date);
+        const day = date.getUTCDate();
+        const dayOfWeek = date.getUTCDay();
+        let classes = "calendar-day";
+        let title = "";
+        if (date.getUTCMonth() !== month) {
+          classes += " other-month";
+        }
+        if (dateISO === todayISO) {
+          classes += " today";
+        }
+        if (dayOfWeek > 0 && dayOfWeek < 6) { 
+            if (currentWeekNo === state.calendar.selectedWeek) {
+                classes += " selected";
+            }
+            const statusDaSemana = weekStatus.get(currentWeekNo);
+            if (statusDaSemana === 'pendente') {
+                classes += " scheduled";
+            } 
+            else if (statusDaSemana === 'ok') {
+                classes += " completed";
+            }
+            if (okDays.has(dateISO)) {
+                classes += " day-ok";
+            }
+            if (pendingDays.has(dateISO)) {
+                classes += " day-pending";
+            }
+        }
+        const agendamentosDoDia = agendamentosByDate[dateISO] || [];
+        if (agendamentosDoDia.length > 0) {
+          const details = agendamentosDoDia.map(a => `${formatDisplay(a.turma)} (${a.status})`);
+          title = [...new Set(details)].join('; ');
+        }
+        let weekNumberHtml = "";
+        if (date.getUTCDay() === 1) {
+          weekNumberHtml = `<span class="week-number">${currentWeekNo.split('-W')[1] || ''}</span>`;
+        }
+        calBody.innerHTML += `<div class="${classes}" title="${title}" data-dateiso="${dateISO}" data-week="${currentWeekNo}" data-dayofweek="${dayOfWeek}">
+            ${weekNumberHtml}
+            ${day}
+          </div>`;
+      }
+      devLog(`Calendário renderizado para ${year}-${month+1}`);
+      updateDevState();
+    }
+    function clearDayDetails() {
+      state.calendar.selectedWeek = null; 
+      state.calendar.clickedDayISO = null; 
+      $("#day-details-date").textContent = "Nenhuma semana selecionada";
+      $("#day-details-body").innerHTML = `<tr><td colspan="3" class="text-center p-4 opacity-50 text-sm">Clique em um dia...</td></tr>`;
+      renderCalendar();
+    }
+    function updateWeekDetailsPanel(weekNo) { 
+      if (!weekNo) return;
+      const weekNumDisplay = weekNo.split('-W')[1];
+      $("#day-details-date").textContent = `Semana ${weekNumDisplay} (${weekNo.split('-W')[0]})`;
+      const tbody = $("#day-details-body");
+      const agendamentosDaSemana = state.agendamentos
+        .filter(a => getWeekNumber(new Date(a.dia + 'T12:00:00Z')) === weekNo)
+        .sort((a,b) => new Date(a.dia) - new Date(b.dia)); 
+      if (agendamentosDaSemana.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center p-4 opacity-50 text-sm">Nenhum agendamento.</td></tr>`;
+      } else {
+        tbody.innerHTML = "";
+        for (const item of agendamentosDaSemana) {
+          const statusClass = item.status === 'pendente' ? 'status-vermelho' : 'status-ok';
+          const diaDate = new Date(item.dia + 'T12:00:00Z');
+          const diaDaSemana = diaDate.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
+          tbody.innerHTML += `
+            <tr class="${statusClass}">
+              <td>${diaDaSemana} (${diaDate.getUTCDate()})</td>
+              <td>${formatDisplay(item.turma)}</td>
+              <td class="text-center">${item.status}</td>
+            </tr>
+          `;
+        }
+      }
+    }
+    
+    /**
+     * MODIFICADO: Salva na API
+     */
+    async function addAgendamento() {
+      const $btn = $("#btn-add-agenda");
+      const dia = $("#form-dia").value;
+      const sala = $("#form-sala").value; 
+      const turma = $("#form-turma").value;
+      const prof = $("#form-prof").value;
+      const status = "pendente"; 
+      
+      if (!dia || !sala || !turma || !prof) {
+        return toast("Dia, Sala, Turma e Professor são obrigatórios.", "error");
+      }
+      
+      const payload = { 
+        action: "addAgendamento",
+        data: { dia, sala, turma, prof, status }
+      };
+      
+      $btn.disabled = true;
+      $btn.textContent = "Salvando na Nuvem...";
+      
+      try {
+        await postToAPI(payload);
+        
+        toast("Agendamento salvo na Planilha!", "ok");
+        devLog(`Agendamento salvo: ${sala}/${turma} em ${dia}`, "ok");
+        $("#form-dia").value = "";
+        $("#form-turma").value = "";
+        $("#form-prof").value = "";
+        
+        // Recarrega todos os dados da API para atualizar o cache
+        await loadAllData();
+        selectFilter(sala); // Re-renderiza a UI com os dados novos
+
+      } catch (err) {
+        // O toast de erro já é mostrado pelo postToAPI
+      } finally {
+        $btn.disabled = false;
+        $btn.textContent = "Salvar Agendamento";
+      }
+    }
+
+    /**
+     * MODIFICADO: Remove da API
+     */
+    async function removeAgendamento(id) {
+      const sala = state.selectionSala;
+      if (!id || !sala) {
+         devLog("Erro: removeAgendamento sem ID ou Sala", "error");
+        return toast("Erro: Não foi possível determinar a Sala para exclusão.", "error");
+      }
+      
+      const ok = await confirmBox("Tem certeza que deseja excluir este agendamento?", "Confirmar Exclusão", "Excluir", "btn-danger w-full");
+      if (!ok) {
+        devLog("Exclusão cancelada pelo usuário.");
+        return;
+      }
+      
+      const payload = {
+        action: "removeAgendamento",
+        id: id
+      };
+      
+      try {
+        await postToAPI(payload);
+        toast("Agendamento excluído.", "ok");
+        devLog(`Agendamento ${id} excluído.`, "ok");
+        
+        await loadAllData();
+        selectFilter(sala); 
+
+      } catch (err) {
+         // Erro
+      }
+    }
+
+    /**
+     * MODIFICADO: Atualiza na API
+     */
+    async function updateStatus(id, newStatus) {
+      const sala = state.selectionSala;
+      if (!id || !sala) {
+        devLog("Erro: updateStatus sem ID ou Sala", "error");
+        return toast("Erro: Não foi possível determinar a Sala para atualizar.", "error");
+      }
+
+      const payload = {
+        action: "updateStatus",
+        id: id,
+        newStatus: newStatus
+      };
+
+      try {
+        await postToAPI(payload);
+        toast(`Status atualizado para ${newStatus}.`, "ok");
+        devLog(`Status ${id} atualizado para ${newStatus}.`, "ok");
+        
+        await loadAllData();
+        selectFilter(sala); 
+
+      } catch (err) {
+        // Erro (reverte a seleção no visual?)
+        // Por enquanto, o loadAllData() vai corrigir o visual
+      }
+    }
+
+    /**
+     * MODIFICADO: Atualiza na API
+     */
+    function openEditModal(id) {
+      const item = state.agendamentos.find(a => a.id === id);
+      if (!item) return toast("Erro: Agendamento não encontrado.", "error");
+      
+      const sala = state.selectionSala;
+      const oldProfDisplay = formatDisplay(item.prof);
+
+      openModal({
+        title: "Editar Professor",
+        content: `
+          <div class="field">
+            <label for="modal-input-prof">Professor:</label>
+            <input id="modal-input-prof" class="input w-full" value="${oldProfDisplay}">
+          </div>
+        `,
+        confirmText: "Salvar",
+        // A função de confirmação agora é ASYNC
+        onConfirm: async () => { 
+          const inputEl = $("#modal-input-prof");
+          const newProfDisplay = inputEl.value;
+          
+          if (!newProfDisplay) {
+            toast("O nome não pode ficar vazio.", "error");
+            return; 
+          }
+          
+          const newProf = formatKey(newProfDisplay);
+          const oldProf = formatKey(item.prof);
+
+          if (newProf === oldProf) {
+            closeModal();
+            return; 
+          }
+
+          if (!id || !sala) {
+            toast("Erro: Não foi possível determinar a Sala para editar.", "error");
+            closeModal();
+            return;
+          }
+
+          const payload = {
+            action: "updateProfessor", // Ação da API
+            id: id,
+            newProf: newProf
+          };
+
+          try {
+            await postToAPI(payload);
+            toast("Professor atualizado!", "ok");
+            devLog(`Professor ${id} atualizado para ${newProf}.`, "ok");
+            closeModal();
+            
+            await loadAllData();
+            selectFilter(sala); 
+
+          } catch (err) {
+            // Erro
+            closeModal();
+          }
+        }
+      });
+      
+      setTimeout(() => $("#modal-input-prof").focus(), 100);
+    }
+
+    /* ========================== Funções de Gerenciamento (API) ========================== */
+
+    function renderManagementList(type, data) {
+      const listUl = $(`#list-${type}`);
+      // MODIFICADO: 'data' já vem no formato { id: {nome: ...} }
+      const items = Object.entries(data).map(([id, value]) => ({ id, nome: value.nome }));
+      
+      if (listUl) {
+        listUl.innerHTML = "";
+        if (items.length === 0) {
+          listUl.innerHTML = `<li class="mgmt-list-item opacity-50">Nenhum item cadastrado.</li>`;
+        }
+        items.sort((a,b) => a.nome.localeCompare(b.nome)).forEach(item => {
+          const li = document.createElement("li");
+          li.className = "mgmt-list-item";
+          let qrButton = "";
+          if (type === 'salas') {
+            qrButton = `<button data-id="${item.id}" data-nome="${item.nome}" data-action="show-qr" class="btn-icon" title="Gerar QR Code">QR</button>`;
+          }
+          li.innerHTML = `
+            <span class="font-medium">${formatDisplay(item.nome)}</span>
+            <div class="flex gap-2">
+              ${qrButton}
+              <button data-id="${item.id}" data-type="${type}" data-action="delete-mgmt" class="btn-icon" title="Excluir">🗑</button>
+            </div>
+          `;
+          listUl.appendChild(li);
+        });
+      }
+
+      const selectsToUpdate = [];
+      if (type === 'salas') selectsToUpdate.push("#select-sala", "#form-sala");
+      if (type === 'turmas') selectsToUpdate.push("#select-turma", "#form-turma");
+      if (type === 'professores') selectsToUpdate.push("#select-prof", "#form-prof");
+
+      selectsToUpdate.forEach(selector => {
+        const select = $(selector);
+        if (!select) return;
+        
+        const currentValue = select.value; 
+        
+        // MODIFICADO: Texto inicial
+        if (selector.startsWith("#select-")) {
+          select.innerHTML = `<option value="">Selecione...</option>`;
+        } else {
+          select.innerHTML = `<option value="">Selecione...</option>`;
+        }
+        
+        items.sort((a,b) => a.nome.localeCompare(b.nome)).forEach(item => {
+          select.innerHTML += `<option value="${item.nome}">${formatDisplay(item.nome)}</option>`;
+        });
+        
+        select.value = currentValue; 
+      });
+    }
+
+    /**
+     * MODIFICADO: Adiciona item na API
+     */
+    async function addManagementItem(type) {
+      const $input = $(`#input-${type}`); 
+      const $btn = $(`#btn-add-${type === 'prof' ? 'prof' : type.slice(0, -1)}`); // #btn-add-sala, #btn-add-turma, #btn-add-prof
+      
+      if (!$input || !$btn) { 
+         return toast(`Erro: Elementos do formulário não encontrados.`, "error");
+      }
+      
+      const nomeFormatado = formatKey($input.value); 
+      
+      if (!nomeFormatado) {
+         return toast("O nome não pode estar vazio.", "error");
+      }
+      
+      const payload = {
+        action: "addListItem",
+        type: type, // "salas", "turmas", ou "professores"
+        data: { nome: nomeFormatado }
+      };
+
+      $btn.disabled = true;
+      $input.disabled = true;
+
+      try {
+        await postToAPI(payload);
+        toast(`${formatDisplay(nomeFormatado)} adicionado!`, "ok");
+        devLog(`Item de lista adicionado: ${type}/${nomeFormatado}`, "ok");
+        $input.value = "";
+        
+        await loadAllData(); // Recarrega todas as listas
+
+      } catch (err) {
+        // Erro
+      } finally {
+        $btn.disabled = false;
+        $input.disabled = false;
+      }
+    }
+
+    /**
+     * MODIFICADO: Remove item da API
+     */
+    async function removeManagementItem(type, id) {
+      const itemNome = $(`button[data-id="${id}"]`).closest('.mgmt-list-item').querySelector('span').textContent;
+      
+      const ok = await confirmBox(`Tem certeza que deseja excluir "${itemNome}"?`, "Confirmar Exclusão", "Excluir", "btn-danger w-full");
+      if (!ok) {
+        devLog("Exclusão de item de lista cancelada.");
+        return;
+      }
+      
+      const payload = {
+        action: "removeListItem",
+        type: type,
+        id: id
+      };
+      
+      try {
+        await postToAPI(payload);
+        toast(`"${itemNome}" excluído.`, "ok");
+        devLog(`Item de lista excluído: ${type}/${itemNome}`, "ok");
+        
+        await loadAllData(); // Recarrega todas as listas
+
+      } catch (err) {
+        // Erro
+      }
+    }
+
+    /**
+     * MODIFICADO: Reseta dados na API
+     */
+    async function resetAllData() {
+      const ok = await confirmBox(
+        "Tem certeza que deseja apagar TUDO? Salas, Turmas, Professores E TODOS os agendamentos? Esta ação é irreversível.",
+        "Resetar Banco de Dados",
+        "Sim, apagar TUDO",
+        "btn-danger w-full"
+      );
+      if (!ok) {
+        devLog("Reset cancelado.");
+        return;
+      }
+
+      devLog("Resetando banco de dados (API)...", "error");
+      
+      const payload = {
+        action: "resetAllData"
+      };
+
+      try {
+        await postToAPI(payload);
+        toast("Banco de dados resetado com sucesso!", "ok");
+        devLog("Banco de dados resetado.", "ok");
+        
+        await loadAllData(); 
+        showView('selection'); 
+
+      } catch (err) {
+        // Erro
+      }
+    }
+
+
+    /* ========================== Init ========================== */
+    /**
+     * MODIFICADO: init() agora é async para esperar o loadAllData()
+     */
+    async function init(){
+      startClock();
+      
+      // Adiciona listener de clique genérico para botões
+      document.body.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn || btn.disabled) return; // Ignora cliques em botões desativados
+        
+        if (btn.matches('.btn-primary, .btn-secondary, .btn-danger, .btn-ghost, .btn-icon')) {
+          playSound('click');
+        }
+
+        // Mapeamento de IDs para funções
+        const idActions = {
+          'btn-selecionar': () => {
+            const sala = $("#select-sala").value;
+            if (!sala) return toast("Por favor, selecione uma Sala.", "error");
+            selectFilter(sala);
+          },
+          'btn-change-filter': () => {
+            showView('selection');
+            clearDayDetails(); 
+            renderCalendar();
+          },
+          'btn-add-agenda': addAgendamento, // Agora é async
+          'cal-prev': () => {
+            state.calendar.month--;
+            if (state.calendar.month < 0) {
+              state.calendar.month = 11;
+              state.calendar.year--;
+            }
+            clearDayDetails(); 
+            renderCalendar(); 
+            renderTable(); 
+            renderStats(); 
+          },
+          'cal-next': () => {
+            state.calendar.month++;
+            if (state.calendar.month > 11) {
+              state.calendar.month = 0;
+              state.calendar.year++;
+            }
+            clearDayDetails(); 
+            renderCalendar(); 
+            renderTable(); 
+            renderStats(); 
+          },
+          'btn-open-management': () => showView('management'),
+          'btn-mgmt-voltar': () => showView('selection'),
+          'btn-add-sala': () => addManagementItem('salas'), // Agora é async
+          'btn-add-turma': () => addManagementItem('turmas'), // Agora é async
+          'btn-add-prof': () => addManagementItem('professores'), // Agora é async
+          'btn-reset-all': resetAllData, // Agora é async
+          
+          // Funções do DEV Panel
+          'dev-panel-toggle': () => {
+            $dev.panel.classList.toggle("collapsed");
+            $dev.toggleBtn.textContent = $dev.panel.classList.contains("collapsed") ? "⚙️" : "✖";
+          },
+          'dev-drag-toggle': (btn) => {
+            isDragEnabled = !isDragEnabled;
+            if (isDragEnabled) {
+              initDragAndDrop();
+              btn.textContent = "Arrastar Layout (On)";
+              btn.classList.add('btn-danger');
+            } else {
+              location.reload();
+            }
+          },
+          'dev-layout-50-50': () => setLayout('50/50'),
+          'dev-layout-30-70': () => setLayout('30/70'),
+          'dev-layout-col1': () => moveCard($dev.form, $dev.col1),
+          'dev-layout-col2': () => moveCard($dev.form, $dev.col2),
+          'dev-toggle-calendar': () => $dev.calendar.classList.toggle('hidden'),
+          'dev-toggle-form': () => $dev.form.classList.toggle('hidden'),
+          'dev-toggle-details': () => $dev.details.classList.toggle('hidden'),
+          'dev-toggle-stats': () => $dev.stats.classList.toggle('hidden'),
+          'dev-test-toast': devTestToast,
+          'dev-export-json': devExportarJSON,
+          'dev-matrix-mode': devAtivarModoMatrix,
+          'dev-toggle-debug': devToggleDebugVisual,
+          'dev-toggle-sounds': devToggleSons,
+        };
+        
+        if (idActions[btn.id]) {
+          idActions[btn.id](btn);
+        }
+      });
+      
+      
+      $("#agenda-table-body").addEventListener("click", async (e) => {
+        const button = e.target.closest("button[data-action]");
+        if (button) {
+          const id = button.dataset.id;
+          const action = button.dataset.action;
+          
+          if (action === "delete") {
+            await removeAgendamento(id); // Agora é async
+          } else if (action === "edit") {
+            openEditModal(id); // A confirmação interna é async
+          }
+        }
+      });
+
+      $("#agenda-table-body").addEventListener("change", (e) => {
+        const select = e.target.closest("select[data-action='status-change']");
+        if (select) {
+          playSound('click');
+          const id = select.dataset.id;
+          const newStatus = select.value;
+          updateStatus(id, newStatus); // Agora é async
+        }
+      });
+      
+      $("#cal-body").addEventListener("click", (e) => {
+        const dayCell = e.target.closest('.calendar-day'); 
+        if (!dayCell) return;
+        playSound('click');
+        const selectedDate = dayCell.dataset.dateiso;
+        const selectedWeek = dayCell.dataset.week;
+        const dayOfWeek = dayCell.dataset.dayofweek; 
+        if(selectedDate && dayOfWeek > 0 && dayOfWeek < 6) {
+           $("#form-dia").value = selectedDate; 
+        }
+        if (dayOfWeek == 0 || dayOfWeek == 6) {
+           clearDayDetails();
+           renderCalendar();
+           devLog("Seleção de semana limpa (clique no fim de semana).");
+        } 
+        else if (dayOfWeek > 0 && dayOfWeek < 6) {
+          state.calendar.selectedWeek = selectedWeek;
+          state.calendar.clickedDayISO = selectedDate;
+          updateWeekDetailsPanel(selectedWeek);
+          renderCalendar();
+          devLog(`Semana selecionada: ${selectedWeek}`);
+        }
+        updateDevState();
+      });
+
+      $("#management-view").addEventListener("click", async (e) => {
+        const button = e.target.closest("button[data-action]");
+        if (button) {
+          playSound('click');
+          const id = button.dataset.id;
+          const type = button.dataset.type;
+          const action = button.dataset.action;
+          
+          if (action === 'delete-mgmt') {
+            await removeManagementItem(type, id); // Agora é async
+          } else if (action === 'show-qr') {
+            const nome = button.dataset.nome;
+            gerarQRCodeSala(nome);
+          }
+        }
+      });
+      
+      // O listener do 'dev-file-importer' (importar JSON) ainda existe,
+      // mas o botão está desativado.
+      
+      initColorPickers();
+      renderCalendar(); 
+      devLog("Aplicação DEV (API) inicializada.", "ok");
+      
+      // Finalmente, carrega os dados da API
+      await loadAllData();
+      
+      // Só mostra a view de seleção DEPOIS que os dados carregaram
+      showView('selection');
+      updateDevState();
+    }
+
+    document.documentElement.classList.add("dark");
+    init(); // Inicia a aplicação
+  </script>
+</body>
+</html>
